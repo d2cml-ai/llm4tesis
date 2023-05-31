@@ -1,4 +1,3 @@
-
 import streamlit as st
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
@@ -12,17 +11,30 @@ from htmlTemplates import css, bot_template, user_template
 
 pdf_reader = PdfReader("raw/BOCA_ALEXANDER_PRESIDENTIAL_APPROVAI.pdf")
 text = pdf_reader.pages[0].extract_text()
-text.replace("\nAUTOR  \n", "AUTOR: ").replace("\nASESOR  \n")
 
-print(text)
+
+def extract_metadata(text):
+    title = text.split("TESIS")[0].split("SOCIALES")[1].replace("\n", "")
+    author = text.split("ECONOMÍA")[1].split("\n")[2]
+    advisor = text.split(author)[1].split("\n")[2]
+    year = text.split(advisor)[1].replace("\n", "").split(", ")[1]
+    metadata_string = f"El siguiente texto es una tesis titulada \"{title}\" Esta tesis fue escrita por {author}, bajo asesoría de {advisor}, en el año {year}:\n"
+    return metadata_string
+
+print(extract_metadata(text))
 
 def get_pdf_text(pdf_docs):
     text = ""
     for pdf in pdf_docs:
         pdf_reader = PdfReader(pdf)
+
         for index, page in enumerate(pdf_reader.pages):
+            page_text = page.extract_text()
+
             if index == 0:
-                text += page.extract_text()
+                page_text = extract_metadata(page_text) + page_text
+            text += page_text
+        text += "\nFIN DE LA TESIS\n"
     return text
 
 def get_text_chunks(text):
@@ -85,8 +97,8 @@ def main():
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = None
     
-    st.write(user_template.replace("{{MSG}}", "Saludos, Chatbot"), unsafe_allow_html=True)
-    st.write(bot_template.replace("{{MSG}}", "Saludos, Tesista"), unsafe_allow_html=True)
+    st.write(user_template.replace("{{MSG}}", "Hola, Chatbot"), unsafe_allow_html=True)
+    st.write(bot_template.replace("{{MSG}}", "Hola, Tesista"), unsafe_allow_html=True)
 
     with st.sidebar:
         st.subheader("documentos")

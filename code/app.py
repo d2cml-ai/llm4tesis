@@ -9,12 +9,29 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.chat_models import ChatOpenAI
 from htmlTemplates import css, bot_template, user_template
 
+def extract_metadata(text):
+    """Extract metadata from the first page of the thesis.
+    Returns a string with a short paragraph with information about the document
+    """
+    title = text.split("TESIS")[0].split("SOCIALES")[1].replace("\n", "")
+    author = text.split("ECONOMÍA")[1].split("\n")[2]
+    advisor = text.split(author)[1].split("\n")[2]
+    year = text.split(advisor)[1].replace("\n", "").split(", ")[1]
+    metadata_string = f"El siguiente texto es una tesis titulada \"{title}\" Esta tesis fue escrita por {author}, bajo asesoría de {advisor}, en el año {year}:\n"
+    return metadata_string
+
 def get_pdf_text(pdf_docs):
     text = ""
     for pdf in pdf_docs:
         pdf_reader = PdfReader(pdf)
-        for page in pdf_reader.pages:
-            text += page.extract_text()
+
+        for index, page in enumerate(pdf_reader.pages):
+            page_text = page.extract_text()
+
+            if index == 0:
+                page_text = extract_metadata(page_text) + page_text
+            text += page_text
+        text += "\nFIN DE LA TESIS\n"
     return text
 
 def get_text_chunks(text):
