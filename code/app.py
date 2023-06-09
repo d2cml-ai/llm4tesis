@@ -11,28 +11,30 @@ from htmlTemplates import css, bot_template, user_template
 
 def extract_metadata(text):
     """Extract metadata from the first page of the thesis.
-    Returns a string with a short paragraph with information about the document
+    Returns a string with a short string with information about the document
     """
-    title = text.split("TESIS")[0].split("SOCIALES")[1].replace("\n", "")
-    author = text.split("ECONOMÍA")[1].split("\n")[2]
-    advisor = text.split(author)[1].split("\n")[2]
-    year = text.split(advisor)[1].replace("\n", "").split(", ")[1]
-    metadata_string = f"El siguiente texto es una tesis titulada \"{title}\" Esta tesis fue escrita por {author}, bajo asesoría de {advisor}, en el año {year}:\n"
-    return metadata_string
+    while "  " in text:
+        text = text.replace("  ", " ")
+    text = text.replace(" \n", "\n").replace("\n", ". ").replace(" , ", ", ")
 
-def get_pdf_text(pdf_docs):
-    text = ""
-    for pdf in pdf_docs:
-        pdf_reader = PdfReader(pdf)
-
-        for index, page in enumerate(pdf_reader.pages):
-            page_text = page.extract_text()
-
-            if index == 0:
-                page_text = extract_metadata(page_text) + page_text
-            text += page_text
-        text += "\nFIN DE LA TESIS\n"
+    while text[-1] == " ":
+        text = text[:-1]
+    text = "Información sobre el siguiente documento: " + text
     return text
+
+# def get_pdf_text(pdf_docs):
+#     text = ""
+#     for pdf in pdf_docs:
+#         pdf_reader = PdfReader(pdf)
+
+#         for index, page in enumerate(pdf_reader.pages):
+#             page_text = page.extract_text()
+
+#             if index == 0:
+#                 page_text = extract_metadata(page_text)
+#             text += page_text
+#         text += "\nFIN DE LA TESIS\n"
+#     return text
 
 def get_text_chunks(text):
     text_splitter = CharacterTextSplitter(
@@ -50,6 +52,27 @@ def get_vector_store(text_chunks):
         texts = text_chunks, 
         embedding = embeddings
     )
+    return vector_store
+
+def pdf_to_string(pdf):
+    text = ""
+    pdf_reader = PdfReader(pdf)
+    for index, page in enumerate(pdf_reader.pages):
+        page_text = page.extract_text()
+        if index == 0:
+            page_text = extract_metadata(page_text)
+        text += page_text
+    return text
+
+def vector_store_from_pdfs(pdf_docs):
+    for i, pdf in enumerate(pdf_docs):
+        text = pdf_to_string(pdf)
+        text += "\nFIN DEL DOCUMENTO\n"
+        chunks = get_text_chunks(text)
+        if i == 0:
+            vector_store = get_vector_store(chunks)
+        else:
+            vector_store.add_texts(chunks)
     return vector_store
 
 def get_conversation_chain(vectorstore):
@@ -73,6 +96,8 @@ def handle_user_input(user_question):
             st.write(user_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
         else:
             st.write(bot_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
+
+
 
 def main():
     
@@ -104,12 +129,8 @@ def main():
         
         if st.button("process"):
             with st.spinner("Procesando"):
-                raw_text = get_pdf_text(pdf_docs)
+                vector_store = vector_store_from_pdfs(pdf_docs)
                 
-                text_chunks = get_text_chunks(raw_text)
-
-                vector_store = get_vector_store(text_chunks)
-
                 st.session_state.conversation = get_conversation_chain(vector_store)
     
 
