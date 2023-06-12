@@ -2,10 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import numpy as np
 import pandas as pd
-from unidecode import unidecode
 import warnings
-
-link = "https://tesis.pucp.edu.pe/repositorio/handle/20.500.12404/24882?show=full"
 
 def main():
     links = []
