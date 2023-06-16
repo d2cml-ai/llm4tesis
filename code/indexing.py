@@ -13,8 +13,8 @@ def count_tokens(text):
 def main():
     load_dotenv()
     embeddings = OpenAIEmbeddings()
-    df = pd.read_csv("output/tesis_data.csv", encoding="latin1").drop(columns=["Unnamed: 0"]).head(5)
-    keys = ["title", "author", "advisor", "date_created", "abstract", "subject"]
+    df = pd.read_csv("output/tesis_data.csv", encoding="latin1").head(5)
+    keys = ["title", "author", "advisor", "date_created", "abstract", "subject", "date_created"]
     tesis_list = [dict(zip(keys, row[keys]))
         for index, row in df.iterrows()
     ]
@@ -23,9 +23,9 @@ def main():
         chunk_overlap=24, 
         length_function=count_tokens
     )
-    tesis = tesis_list[0:5]
+    tesis = tesis_list
     abstracts = [item["abstract"] for item in tesis]
-    metadatas = [{"title": item["title"], "author": item["author"], "subject": item["subject"]} for item in tesis]
+    metadatas = [{"title": item["title"], "author": item["author"], "year": item["date_created"], "subject": item["subject"]} for item in tesis]
     
     chunks = text_splitter.create_documents(
         abstracts, 

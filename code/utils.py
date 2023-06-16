@@ -35,6 +35,8 @@ def ensure_fit_tokens(messages):
 
 def get_page_contents(docs):
     contents = ""
+    metadata = ""
     for i, doc in enumerate(docs, 1):
         contents += f"Document #{i}:\n{doc.page_content}\n\n"
-    return contents
+        metadata += f"Document #{i}\n{doc.metadata}\n\n"
+    return contents, metadata

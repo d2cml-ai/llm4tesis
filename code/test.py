@@ -25,11 +25,13 @@ def construct_messages(history):
 
 def query_handler(query):
     relevant_docs = retriever.get_relevant_documents(query)
-    context = get_page_contents(relevant_docs)
-    query_with_context = human_template.format(query=query, context=context)
+    context, metadata = get_page_contents(relevant_docs)
+    query_with_context = human_template.format(query=query, context=context, metadata = metadata)
     return {"role": "user", "content": query_with_context}
 
 def generate_response():
+    if st.session_state.prompt == "":
+        return
     st.session_state.history.append({
         "message": st.session_state.prompt, 
         "is_user": True
