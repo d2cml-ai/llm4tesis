@@ -40,3 +40,27 @@ def get_page_contents(docs):
         contents += f"Document #{i}:\n{doc.page_content}\n\n"
         metadata += f"Document #{i}\n{doc.metadata}\n\n"
     return contents, metadata
+
+def extract_metadata(doc):
+    cover = doc[0]
+    text = cover.page_content
+
+    while "  " in text:
+        text = text.replace("  ", " ")
+    text = text.replace(" \n", "\n")
+    text = text.replace("\n", ". ")
+    text = text.replace(" , ", ", ")
+    text = text.replace("1 PONTIFICIA", "PONTIFICIA")
+
+    while text[-1] == " ":
+        text = text[:-1]
+    
+    return text
+
+def add_info(doc):
+    info = extract_metadata(doc)
+    
+    for page in doc:
+        page.metadata.update({"info": info})
+    
+    return doc

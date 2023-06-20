@@ -1,10 +1,12 @@
 from dotenv import load_dotenv
 from transformers import GPT2TokenizerFast
+from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
-import pandas as pd
 import os
+from random import sample
+from utils import add_info
 
 tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
 def count_tokens(text):
@@ -13,25 +15,30 @@ def count_tokens(text):
 def main():
     load_dotenv()
     embeddings = OpenAIEmbeddings()
-    df = pd.read_csv("output/tesis_data.csv", encoding="latin1")
-    keys = ["title", "author", "advisor", "date_created", "abstract", "subject"]
-    tesis_list = [dict(zip(keys, row[keys]))
-        for index, row in df.iterrows()
-    ]
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=512, 
         chunk_overlap=24, 
         length_function=count_tokens
     )
-    tesis = tesis_list
-    abstracts = [item["abstract"] for item in tesis]
-    metadatas = [{"title": item["title"], "author": item["author"], "year": item["date_created"], "subject": item["subject"]} for item in tesis]
+    paths = [os.path.join("raw", file) for file in os.listdir("raw")]
+    paths = sample(paths, 10)
+
+    with open("output/drawn_files.txt", "w") as df:
+        df.write("\n".join(paths))
+
+    loaders = [PyPDFLoader(path) for path in paths]
+    docs = [loader.load() for loader in loaders]
+    chunks = []
+
+    for doc in docs:
+        doc = add_info(doc)
+        chunks += text_splitter.split_documents(doc)
     
-    chunks = text_splitter.create_documents(
-        abstracts, 
-        metadatas=metadatas
+    db = Chroma.from_documents(
+        documents=chunks, 
+        embedding=embeddings, 
+        persist_directory="output/test_db"
     )
-    db = Chroma.from_documents(documents=chunks, embedding=embeddings, persist_directory="output/test_db")
     db.persist()
 
 if __name__ == "__main__":
