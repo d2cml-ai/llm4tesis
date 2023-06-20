@@ -13,8 +13,8 @@ def count_tokens(text):
 def main():
     load_dotenv()
     embeddings = OpenAIEmbeddings()
-    df = pd.read_csv("output/tesis_data.csv", encoding="latin1").head(5)
-    keys = ["title", "author", "advisor", "date_created", "abstract", "subject", "date_created"]
+    df = pd.read_csv("output/tesis_data.csv", encoding="latin1")
+    keys = ["title", "author", "advisor", "date_created", "abstract", "subject"]
     tesis_list = [dict(zip(keys, row[keys]))
         for index, row in df.iterrows()
     ]
