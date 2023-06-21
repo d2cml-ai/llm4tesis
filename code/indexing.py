@@ -21,11 +21,7 @@ def main():
         length_function=count_tokens
     )
     paths = [os.path.join("raw", file) for file in os.listdir("raw")]
-    paths = sample(paths, 10)
-
-    with open("output/drawn_files.txt", "w") as df:
-        df.write("\n".join(paths))
-
+    
     loaders = [PyPDFLoader(path) for path in paths]
     docs = [loader.load() for loader in loaders]
     chunks = []
