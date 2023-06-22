@@ -62,18 +62,18 @@ def main():
     if "history" not in st.session_state:
         st.session_state.history = []
     
+    for message in st.session_state.history:
+        if message["is_user"]:
+            st.write(user_msg_container_html_template.replace("$MSG", message["message"]), unsafe_allow_html=True)
+        else:
+            st.write(bot_msg_container_html_template.replace("$MSG", message["message"]), unsafe_allow_html=True)
+    
     st.text_input(
         "Consulta al asistente virtual:", 
         key="prompt", 
         placeholder="ej.: ¿Existen tesis sobre desigualdad de ingresos?", 
         on_change=generate_response
     )
-
-    for message in st.session_state.history:
-        if message["is_user"]:
-            st.write(user_msg_container_html_template.replace("$MSG", message["message"]), unsafe_allow_html=True)
-        else:
-            st.write(bot_msg_container_html_template.replace("$MSG", message["message"]), unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
