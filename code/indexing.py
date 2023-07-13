@@ -40,8 +40,8 @@ def main():
     load_dotenv()
     embeddings = OpenAIEmbeddings()
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=512, 
-        chunk_overlap=24, 
+        chunk_size=2048, 
+        chunk_overlap=96, 
         length_function=count_tokens
     )
     paths = [os.path.join("raw", file) for file in os.listdir("raw")]
@@ -57,7 +57,7 @@ def main():
     db = Chroma.from_documents(
         documents=chunks, 
         embedding=embeddings, 
-        persist_directory="output/test_db"
+        persist_directory="output/map_reduce_test"
     )
     db.persist()
 
