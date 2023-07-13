@@ -6,9 +6,33 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 import os
 from random import sample
-from utils import add_info
 
 tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+
+def extract_metadata(doc):
+    cover = doc[0]
+    text = cover.page_content
+
+    while "  " in text:
+        text = text.replace("  ", " ")
+    text = text.replace(" \n", "\n")
+    text = text.replace("\n", ". ")
+    text = text.replace(" , ", ", ")
+    text = text.replace("1 PONTIFICIA", "PONTIFICIA")
+
+    while text[-1] == " ":
+        text = text[:-1]
+    
+    return text
+
+def add_info(doc):
+    info = extract_metadata(doc)
+    
+    for page in doc:
+        page.metadata.update({"info": info})
+    
+    return doc
+
 def count_tokens(text):
     return len(tokenizer.encode(text))
 
