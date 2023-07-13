@@ -14,7 +14,7 @@ retriever = vec_db.as_retriever(search_type="mmr") # search_kwargs = {}
 
 import tiktoken
 
-def message_token_count(message, num_tokens, model = "gpt-4"):
+def message_token_count(message, num_tokens, model):
 
     try:
         encoding = tiktoken.encoding_for_model(model)
@@ -29,10 +29,10 @@ def message_token_count(message, num_tokens, model = "gpt-4"):
     return num_tokens
     
 
-def num_tokens_from_messages(messages, model="gpt-4"):
+def num_tokens_from_messages(messages, model="gpt-3.5-turbo"):
     """Returns the number of tokens used by a list of messages."""        
 
-    if model != "gpt-4":
+    if model != "gpt-3.5-turbo":
         raise NotImplementedError(f"""num_tokens_from_messages() is not presently implemented for model {model}. 
                                   See https://github.com/openai/openai-python/blob/main/chatml.md 
                                   for information on how messages are converted to tokens.""")
@@ -52,7 +52,7 @@ def ensure_fit_tokens(messages):
     If not, remove oldest messages until it fits.
     """
     total_tokens = num_tokens_from_messages(messages)
-    while total_tokens > 8192:
+    while total_tokens > 4096:
         messages.pop(0)
         total_tokens = num_tokens_from_messages(messages)
     return messages

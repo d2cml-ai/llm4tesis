@@ -17,7 +17,7 @@ def generate_response():
     messages = construct_messages(st.session_state.history)
     messages.append(query_handler(st.session_state.prompt))
     response = openai.ChatCompletion.create(
-        model="gpt-4", 
+        model="gpt-3.5-turbo", 
         messages=messages
     )
     assistant_message = response["choices"][0]["message"]["content"]
