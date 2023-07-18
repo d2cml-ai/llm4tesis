@@ -62,7 +62,10 @@ def get_page_contents(docs):
     contents = ""
 
     for i, doc in enumerate(docs, 1):
-        contents += f"Document #{i}:\n{doc['metadata']['info']}\n{doc['summary']}\n\n"
+        info = doc['metadata']['info']
+        url = doc["metadata"]["url"]
+        summary = doc['summary']
+        contents += f"Document #{i}:\nInfo: {info}\nLink: {url}\n{summary}\n\n"
     
     return contents
 
