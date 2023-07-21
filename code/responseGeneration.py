@@ -1,19 +1,51 @@
-from langchain.vectorstores import Chroma
+from langchain.vectorstores import Pinecone
 from langchain.embeddings import OpenAIEmbeddings
-from langchain.llms import OpenAI
-from langchain.retrievers import ContextualCompressionRetriever
-from langchain.retrievers.document_compressors import LLMChainExtractor
 from prompts import *
 from dotenv import load_dotenv
+import pinecone
 import openai
+import tiktoken
 
 load_dotenv()
 
+pinecone.init()
 embedding = OpenAIEmbeddings()
-vec_db = Chroma(persist_directory="output/test_db", embedding_function=embedding)
-retriever = vec_db.as_retriever(search_type="mmr", search_kwargs = {"k":8, "fetch_k":40})
+vector_database = Pinecone.from_existing_index(
+    index_name="llm4tesis", 
+    embedding=embedding
+)
+retriever = vector_database.as_retriever(search_type="mmr")
 
-import tiktoken
+def reduce(doc, query):
+    reduce_query_content = reduce_query_template.format(
+        query = query, 
+        context = doc.page_content
+    )
+    messages = [
+        {"role": "system", "content": reduce_system_prompt}, 
+        {"role": "user", "content": reduce_query_content}
+    ]
+    summary = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=messages
+    )
+    reduced_doc = {"summary": summary["choices"][0]["message"]["content"], "metadata": doc.metadata}
+    return reduced_doc
+
+def map_reduce_relevant_documents(query):
+    relevant_docs = retriever.get_relevant_documents(query)
+    reduced_docs = []
+
+    for doc in relevant_docs:
+        reduced_docs += [reduce(doc, query)]
+    
+    return reduced_docs
+
+def query_handler(query):
+    relevant_docs = map_reduce_relevant_documents(query)
+    context = get_page_contents(relevant_docs)
+    query_with_context = human_template.format(query=query, context=context)
+    return {"role": "user", "content": query_with_context}
 
 def message_token_count(message, num_tokens, model):
     try:
@@ -69,7 +101,6 @@ def get_page_contents(docs):
     
     return contents
 
-
 def construct_messages(history):
     messages = [{"role": "system", "content": system_prompt}]
 
@@ -80,33 +111,3 @@ def construct_messages(history):
     messages = ensure_fit_tokens(messages)
     return messages
 
-def reduce(doc, query):
-    reduce_query_content = reduce_query_template.format(
-        query = query, 
-        context = doc.page_content
-    )
-    messages = [
-        {"role": "system", "content": reduce_system_prompt}, 
-        {"role": "user", "content": reduce_query_content}
-    ]
-    summary = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages
-    )
-    reduced_doc = {"summary": summary["choices"][0]["message"]["content"], "metadata": doc.metadata}
-    return reduced_doc
-
-def map_reduce_relevant_documents(query):
-    relevant_docs = retriever.get_relevant_documents(query)
-    reduced_docs = []
-
-    for doc in relevant_docs:
-        reduced_docs += [reduce(doc, query)]
-    
-    return reduced_docs
-
-def query_handler(query):
-    relevant_docs = map_reduce_relevant_documents(query)
-    context = get_page_contents(relevant_docs)
-    query_with_context = human_template.format(query=query, context=context)
-    return {"role": "user", "content": query_with_context}
