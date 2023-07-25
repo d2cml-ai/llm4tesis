@@ -38,11 +38,14 @@ def reduce(doc, query):
         metadata=doc.metadata
     )
 
+def make_requests(docs, query):
+    for doc in docs:
+        reduce(doc, query)
+
 def map_reduce_relevant_documents(query):
     relevant_docs = retriever.get_relevant_documents(query)
     
-    for doc in relevant_docs:
-        api.run_request_function(reduce, doc=doc, query=query)
+    api.run_request_function(make_requests, docs=relevant_docs, query=query)
     
     reduced_docs = [{
         "summary": result.response["choices"][0]["message"]["content"], 
