@@ -2,6 +2,7 @@ from langchain.vectorstores import Pinecone
 from langchain.embeddings import OpenAIEmbeddings
 from prompts import *
 from dotenv import load_dotenv
+from openai_multi_client import OpenAIMultiClient
 import pinecone
 import openai
 import tiktoken
@@ -15,6 +16,13 @@ vector_database = Pinecone.from_existing_index(
     embedding=embedding
 )
 retriever = vector_database.as_retriever(search_type="mmr")
+api = OpenAIMultiClient(
+    endpoint="chats", 
+    concurrency=4, 
+    data_template={
+        "model": "gpt-3.5-turbo"
+    }
+)
 
 def reduce(doc, query):
     reduce_query_content = reduce_query_template.format(
@@ -25,20 +33,22 @@ def reduce(doc, query):
         {"role": "system", "content": reduce_system_prompt}, 
         {"role": "user", "content": reduce_query_content}
     ]
-    summary = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages
+    api.request(
+        data={"messages": messages}, 
+        metadata=doc.metadata
     )
-    reduced_doc = {"summary": summary["choices"][0]["message"]["content"], "metadata": doc.metadata}
-    return reduced_doc
 
 def map_reduce_relevant_documents(query):
     relevant_docs = retriever.get_relevant_documents(query)
-    reduced_docs = []
-
-    for doc in relevant_docs:
-        reduced_docs += [reduce(doc, query)]
     
+    for doc in relevant_docs:
+        api.run_request_function(reduce, doc=doc, query=query)
+    
+    reduced_docs = [{
+        "summary": result.response["choices"][0]["message"]["content"], 
+        "metadata": result.metadata
+    } for result in api]
+    api.pull_all()
     return reduced_docs
 
 def query_handler(query):

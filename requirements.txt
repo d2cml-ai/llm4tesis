@@ -5,3 +5,5 @@ python-dotenv
 tiktoken
 transformers
 pinecone-client
+openai-multi-client
+_ssl
