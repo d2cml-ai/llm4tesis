@@ -4,6 +4,4 @@ openai
 python-dotenv
 tiktoken
 transformers
-numpy
-pandas
-chromadb
+pinecone-client

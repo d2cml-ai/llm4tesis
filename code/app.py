@@ -1,11 +1,14 @@
 import openai
 import streamlit as st
 from dotenv import load_dotenv
+import os
 
 from render import bot_msg_container_html_template, user_msg_container_html_template
 from responseGeneration import *
 
 load_dotenv()
+
+openai.api_key = os.getenv('OPENAI_API_KEY')
 
 def generate_response():
     if st.session_state.prompt == "":
@@ -17,8 +20,9 @@ def generate_response():
     messages = construct_messages(st.session_state.history)
     messages.append(query_handler(st.session_state.prompt))
     response = openai.ChatCompletion.create(
-        model="gpt-4", 
-        messages=messages
+        model="gpt-3.5-turbo", 
+        messages=messages, 
+        temperature=0.6
     )
     assistant_message = response["choices"][0]["message"]["content"]
     st.session_state.history.append({
