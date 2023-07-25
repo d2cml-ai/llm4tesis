@@ -1,3 +1,4 @@
 .chroma
 output/*db
 output/draw_files.txt
+env
