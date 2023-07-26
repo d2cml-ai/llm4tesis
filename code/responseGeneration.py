@@ -13,7 +13,10 @@ vector_database = Pinecone.from_existing_index(
     index_name="llm4tesis", 
     embedding=embedding
 )
-retriever = vector_database.as_retriever(search_type="mmr")
+retriever = vector_database.as_retriever(
+    search_type="mmr", 
+    search_kwargs={"fetch_k": 40, "k": 8}
+)
 
 def query_handler(query):
     relevant_docs = retriever.get_relevant_documents(query)
