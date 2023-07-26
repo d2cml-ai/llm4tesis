@@ -34,9 +34,9 @@ def message_token_count(message, num_tokens, model):
         
     return num_tokens
     
-def num_tokens_from_messages(messages, model="gpt-3.5-turbo"):
+def num_tokens_from_messages(messages, model="gpt-4"):
     """Returns the number of tokens used by a list of messages."""
-    if model != "gpt-3.5-turbo":
+    if model != "gpt-4":
         raise NotImplementedError(f"""num_tokens_from_messages() is not presently implemented for model {model}. 
                                   See https://github.com/openai/openai-python/blob/main/chatml.md 
                                   for information on how messages are converted to tokens.""")
