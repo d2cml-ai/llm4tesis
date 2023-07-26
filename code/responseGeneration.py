@@ -68,7 +68,7 @@ def get_page_contents(docs):
 
     for i, doc in enumerate(docs, 1):
         info = doc.metadata['info']
-        url = doc.metadata["url"]
+        url = doc.metadata["url"].replace("bistream", "bitstream")
         page = doc.page_content
         contents += f"Document #{i}:\nInfo: {info}\nLink: {url}\n{page}\n\n"
     
