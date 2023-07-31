@@ -13,14 +13,6 @@ index_name = "llm4tesis"
 pinecone.init()
 index = pinecone.Index(index_name)
 
-def repo_link_to_pdf_link(link):
-    if "/bitstream/" in link:
-        return link
-    
-    link = link.split("/repositorio/")
-    pdf_link = link[0] + "/repositorio/bistream/" + link[1] + "/tesis?sequence=1&isAllowed=y"
-    return pdf_link
-
 def create_pdf_link_dictionary(file_name):
     response = requests.get(
         query_template.format(doc_name=file_name), 
@@ -29,8 +21,7 @@ def create_pdf_link_dictionary(file_name):
     soup = BeautifulSoup(response.content, "html.parser")
     header = soup.find("div", class_="col-sm-9 artifact-description")
     link = "https://tesis.pucp.edu.pe" + header.find("a")["href"]
-    pdf_link = repo_link_to_pdf_link(link)
-    return {file_name: pdf_link}
+    return {file_name: link}
 
 def get_matching_vectors_ids(key):
     matches = index.query(
@@ -78,9 +69,6 @@ def main():
         if (i + 1) % 50 == 0:
             print("    ", i + 1, sep="")
         
-        pdf_link_dictionary.update(
-            create_pdf_link_dictionary(name)
-        )
         modify_vector_metadata(key, value)
         i += 1
 
