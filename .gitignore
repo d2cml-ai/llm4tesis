@@ -1,4 +1,4 @@
 output/*db
 output/*reduce*
 output/draw_files.txt
-env
+*env
