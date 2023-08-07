@@ -20,7 +20,7 @@ def generate_response():
     messages = construct_messages(st.session_state.history)
     messages.append(query_handler(st.session_state.prompt))
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo", 
+        model="gpt-4", 
         messages=messages, 
         temperature=0.6
     )
