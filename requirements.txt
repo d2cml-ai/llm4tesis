@@ -1,7 +1,4 @@
-streamlit
-langchain
-openai
-python-dotenv
-tiktoken
-transformers
-pinecone-client
+requests
+beautifulsoup4
+numpy
+pandas
