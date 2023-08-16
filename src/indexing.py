@@ -6,71 +6,84 @@ from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import Pinecone
 import pinecone
 import os
+import pandas as pd
+import uuid
+from ensureMatches import matchingPDFs, dataFilePath, pdfFilesPath
 
+load_dotenv()
 tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+index_name = "llm4tesis"
+embeddings = OpenAIEmbeddings()
+metadataFields = [
+	"advisor", 
+	"author", 
+	"year",
+	"title",
+	"url_thesis"
+]
 
-def extract_metadata(doc):
-    cover = doc[0]
-    text = cover.page_content
+def updateMetadata(loadedDoc, metadata):
+	metadataDict = {
+		metadataField: metadata[metadataField].values[0] 
+		for metadataField in metadataFields
+	}
 
-    while "  " in text:
-        text = text.replace("  ", " ")
-    text = text.replace(" \n", "\n")
-    text = text.replace("\n", ". ")
-    text = text.replace(" , ", ", ")
-    text = text.replace("1 PONTIFICIA", "PONTIFICIA")
+	for page in loadedDoc:
+		page.metadata.update(metadataDict)
+		
+	return loadedDoc
 
-    while text[-1] == " ":
-        text = text[:-1]
-    
-    return text
+def getDocWithMetadata(path, metadata):
+	loadedDoc = PyPDFLoader(path).load()
+	docWithMetadata = updateMetadata(loadedDoc, metadata)
+	return docWithMetadata
 
-def add_info(doc):
-    filename = doc[0].metadata["source"].split("raw/")[1]
-    url = f"https://tesis.pucp.edu.pe/repositorio/bitstream/handle/20.500.12404/24882/{filename}?sequence=1&isAllowed=y"
-    info = extract_metadata(doc)
-    
-    for page in doc:
-        page.metadata.update({"info": info, "url": url})
-    
-    return doc
+def embedFromDocuments(docChunks):
+	vectorsWithMetadata = []
+	texts = [docChunk.page_content for docChunk in docChunks]
+	metadatas = [docChunk.metadata for docChunk in docChunks]
+	textEmbeddings = embeddings.embed_documents(texts)
+	hashes = [str(uuid.uuid4()) for _ in texts]
+
+	for i, (text, textEmbedding) in enumerate(zip(texts, textEmbeddings)):
+		textMetadata = metadatas[i]
+		textMetadata["text"] = text
+		vectorsWithMetadata.append((hashes[i], textEmbedding, textMetadata))
+	
+	return vectorsWithMetadata
 
 def count_tokens(text):
-    return len(tokenizer.encode(text))
+	return len(tokenizer.encode(text))
 
 def main():
-    load_dotenv()
-    index_name = "llm4tesis"
-    embeddings = OpenAIEmbeddings()
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=512, 
-        chunk_overlap=24, 
-        length_function=count_tokens, 
-        separators=["\n\n", "\n", " ", ""]
-    )
-    paths = [os.path.join("raw", file) for file in os.listdir("raw")]    
-    loaders = [PyPDFLoader(path) for path in paths]
-    docs = [loader.load() for loader in loaders]
-    chunks = []
+	pinecone.init()
+	text_splitter = RecursiveCharacterTextSplitter(
+		chunk_size=512, 
+		chunk_overlap=24, 
+		length_function=count_tokens, 
+		separators=["\n\n", "\n", " ", ""]
+	)
+	metadata = pd.read_json(f"{dataFilePath}/00_metadata/eco_tesis.json")
+	paths = [os.path.join(pdfFilesPath, file) for file in matchingPDFs]
 
-    for doc in docs:
-        doc = add_info(doc)
-        chunks += text_splitter.split_documents(doc)
-    
-    pinecone.init()
-    
-    if index_name not in pinecone.list_indexes():
-        pinecone.create_index(
-            name = index_name, 
-            metric = "cosine", 
-            dimension = 1536
-        )
-    
-    db = Pinecone.from_documents(
-        documents=chunks, 
-        embedding=embeddings, 
-        index_name=index_name
-    )
+	if index_name not in pinecone.list_indexes():
+		pinecone.create_index(
+			name=index_name, 
+			metric="cosine",
+			dimension=1536
+		)
+	
+	pineconeIndex = pinecone.Index(index_name)
+
+	for path in paths:
+		pathInMetadata = path.replace(dataFilePath, "dspace_home")
+		docMetadata = metadata[metadata.pdf_file_local == pathInMetadata][metadataFields]
+		docWithMetadata = getDocWithMetadata(path, docMetadata)
+		docChunks = text_splitter.split_documents(docWithMetadata)
+		docEmbeddings = embedFromDocuments(docChunks)
+		pineconeIndex.upsert(
+			vectors = docEmbeddings
+		)
 
 if __name__ == "__main__":
-    main()
+	main()

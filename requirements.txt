@@ -2,3 +2,10 @@ requests
 beautifulsoup4
 numpy
 pandas
+python-dotenv
+langchain
+openai
+pinecone-client
+transformers
+pypdf
+tiktoken
