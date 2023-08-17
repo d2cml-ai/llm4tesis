@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from transformers import GPT2TokenizerFast
+import tiktoken
 from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
@@ -8,10 +8,11 @@ import pinecone
 import os
 import pandas as pd
 import uuid
+import itertools
 from ensureMatches import matchingPDFs, dataFilePath, pdfFilesPath
 
 load_dotenv()
-tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+tokenizer = tiktoken.get_encoding("cl100k_base")
 index_name = "llm4tesis"
 embeddings = OpenAIEmbeddings()
 metadataFields = [
@@ -55,6 +56,21 @@ def embedFromDocuments(docChunks):
 def count_tokens(text):
 	return len(tokenizer.encode(text))
 
+def createBatchOfEmbeddings(docEmbeddings, batchSize):
+	iterateOverEmbeddings = iter(docEmbeddings)
+	embeddingChunk = itertools.islice(iterateOverEmbeddings, batchSize)
+	
+	while embeddingChunk:
+		yield embeddingChunk
+		embeddingChunk = tuple(itertools.islice(iterateOverEmbeddings, batchSize))	
+
+def batchUpsertEmbeddings(docEmbeddings, batchSize, pineconeIndex):
+	
+	for batch in createBatchOfEmbeddings(docEmbeddings, batchSize):
+		pineconeIndex.upsert(
+			vectors=batch
+		)
+
 def main():
 	pinecone.init()
 	text_splitter = RecursiveCharacterTextSplitter(
@@ -81,9 +97,7 @@ def main():
 		docWithMetadata = getDocWithMetadata(path, docMetadata)
 		docChunks = text_splitter.split_documents(docWithMetadata)
 		docEmbeddings = embedFromDocuments(docChunks)
-		pineconeIndex.upsert(
-			vectors = docEmbeddings
-		)
+		batchUpsertEmbeddings(docEmbeddings, 100, pineconeIndex)
 
 if __name__ == "__main__":
 	main()
