@@ -67,10 +67,20 @@ def get_page_contents(docs):
     contents = ""
 
     for i, doc in enumerate(docs, 1):
-        info = doc.metadata['info']
-        url = doc.metadata["url"].replace("bistream", "bitstream")
+        docMetadata = doc.metadata
         page = doc.page_content
-        contents += f"Document #{i}:\nInfo: {info}\nLink: {url}\n{page}\n\n"
+        title = docMetadata["title"]
+        author = docMetadata["author"]
+        advisor = docMetadata ["advisor"]
+        year = docMetadata["year"]
+        url = docMetadata["url_thesis"]
+        contents += f"Document #{i}:\n"
+        contents += f"Title: {title}\n"
+        contents += f"Author(s): {author}\n"
+        contents += f"Advisor: {advisor}\n"
+        contents += f"Year: {year}\n"
+        contents += f"Link: {url}\n"
+        contents += page + "\n\n"
     
     return contents
 
