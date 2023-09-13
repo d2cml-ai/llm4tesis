@@ -10,7 +10,7 @@ load_dotenv()
 pinecone.init()
 embedding = OpenAIEmbeddings()
 vector_database = Pinecone.from_existing_index(
-    index_name="llm4tesis", 
+    index_name="test", 
     embedding=embedding
 )
 retriever = vector_database.as_retriever(search_type="mmr")
@@ -72,13 +72,15 @@ def get_page_contents(docs):
         title = docMetadata["title"]
         author = docMetadata["author"]
         advisor = docMetadata ["advisor"]
-        year = docMetadata["year"]
-        url = docMetadata["url_thesis"]
+        year = docMetadata["created"]
+        url = docMetadata["uri"]
+        discipline = docMetadata["discipline"]
         contents += f"Document #{i}:\n"
         contents += f"Title: {title}\n"
         contents += f"Author(s): {author}\n"
         contents += f"Advisor: {advisor}\n"
         contents += f"Year: {year}\n"
+        contents += f"Discipline: {discipline}"
         contents += f"Link: {url}\n"
         contents += page + "\n\n"
     
